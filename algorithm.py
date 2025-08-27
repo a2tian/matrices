@@ -8,16 +8,14 @@ def nystrom_approximation(A, S):
 
 def partial_cholesky(A, k, selector):
     n = A.shape[0]
-    diag = np.diag(A)
+    diag = A.diagonal()
     F = np.zeros((n, k))
     S = set()
     for i in range(k):
-        s = selector(diag)
-        S.add(s)
+        S.add(s := selector(diag))
         g = A[:, s] - F[:, :i] @ F[s, :i].T
         F[:, i] = g / np.sqrt(g[s])
-        diag = diag - F[:, i] ** 2
-        diag = diag.clip(min=0)
+        diag = (diag - F[:, i] ** 2).clip(min=0)
         if sum(diag) == 0:
             break
     return F, S
@@ -30,7 +28,7 @@ def adaptive_random(diag):
 class Test(unittest.TestCase):
     def test_rpcholesky(self):
         """
-        Ensure that the Nystrom approximation returned by RPCholesky is correct.
+        Check that the Nystrom approximation returned by RPCholesky is correct.
         """
         n = 1000
         A = np.random.random_sample((n, n))
