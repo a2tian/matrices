@@ -7,6 +7,7 @@ import seaborn as sns
 import pandas as pd
 import numpy as np
 from tqdm import tqdm
+import scipy
 import time
 
 
@@ -35,27 +36,28 @@ def openml_kernel(dataset, n_samples=10**4):
     return K, X, y
 
 
-def nystrom_error(K, k, selector):
+def nystrom_error(K_full, k, selector):
     """
     Computes the approximation error of a rank-k Nystrom approximation for the kernel matrix K.
 
     """
     start = time.time()
-    F, _ = partial_cholesky(K, k, selector)
+    # can also run partial_cholesky with K directly
+    F, _ = partial_cholesky(K_full, k, selector)
     end = time.time()
 
     K_hat = F @ F.T
-    K_full = K[:, :]
 
     # Compute the optimal Nystrom approximation for comparison
     # u, s, vt = scipy.sparse.linalg.svds(K_full, k=k)
     # K_opt = u @ np.diag(s) @ vt
 
-    relative_F_err = np.linalg.norm(
+    rel_err_f = np.linalg.norm(
         K_full - K_hat, 'fro') / np.linalg.norm(K_full, 'fro')
-    relative_tr_err = np.trace(K_full - K_hat) / np.trace(K_full)
+    rel_err_tr = np.trace(K_full - K_hat) / np.trace(K_full)
+
     # spec_err = np.linalg.norm(K_full - K_hat, 2)
-    return {"tr": relative_tr_err, "fro": relative_F_err, "time": end - start}
+    return {"tr": rel_err_tr, "fro": rel_err_f, "time": end - start}
 
 
 def test_nystrom(datasets, n_samples, n_trials, ks):
@@ -68,34 +70,41 @@ def test_nystrom(datasets, n_samples, n_trials, ks):
         n_trials (int): The number of trials to run, per rank.
         ks (list): List of ranks for the Nystrom approximation.
     """
-    res = pd.DataFrame(columns=["dataset", "k", "tr", "fro", "time"])
+    res = pd.DataFrame(columns=["dataset", "k", "rp_tr", "rp_fro", "rp_time",
+                       "greedy_tr", "greedy_fro", "greedy_time", "opt_tr", "opt_fro"])
     for dataset in (data_bar := tqdm(datasets)):
         data_bar.set_description(f"Dataset: {dataset}")
         K, _, _ = openml_kernel(dataset, n_samples)
+        K_full = K[:, :]
+
         for k in (k_bar := tqdm(ks, leave=False)):
             k_bar.set_description(f"k={k}")
-            for _ in (trial_bar := tqdm(range(n_trials), leave=False)):
-                trial_bar.set_description(f"Trial {_+1}/{n_trials}")
-                errors = nystrom_error(K, k, adaptive_random)
-                res.loc[len(res)] = [dataset, k, errors["tr"],
-                                     errors["fro"], errors["time"]]
+            # Compute the optimal Nystrom approximation for comparison
+            u, s, vt = scipy.sparse.linalg.svds(K_full, k=k)
+            K_opt = u @ np.diag(s) @ vt
+            opt_tr = np.trace(K_full - K_opt) / np.trace(K_full)
+            opt_fro = np.linalg.norm(
+                K_full - K_opt, 'fro') / np.linalg.norm(K_full, 'fro')
+            
+            for i in (trial_bar := tqdm(range(n_trials), leave=False)):
+                trial_bar.set_description(f"Trial {i+1}/{n_trials}")
+                rp_errors = nystrom_error(K_full, k, adaptive_random)
+                greedy_errors = nystrom_error(K_full, k, greedy)
+                res.loc[len(res)] = [dataset, k, rp_errors["tr"], rp_errors["fro"], rp_errors["time"],
+                                     greedy_errors["tr"], greedy_errors["fro"], greedy_errors["time"], opt_tr, opt_fro]
     return res
 
 
-if __name__ == "__main__":
-    datasets = ["yolanda", "mnist_784", "jannis",
-                "volkert", "creditcard", "hls4ml_lhc_jets_hlf"]
-    n_samples = 10000
-    n_trials = 10
-    ks = [10, 50] + list(range(100, 1001, 100))
-
+def generate_data(datasets, n_samples, n_trials, ks, filename):
     res = test_nystrom(datasets, n_samples, n_trials, ks)
-    res.to_csv(f"out/rpcholesky_errors.csv", index=False)
+    res.to_csv(filename, index=False)
 
-    sns.set_theme(style="whitegrid")
+
+def make_plots(res):
+    sns.set(style="whitegrid", font_scale=2)
 
     # Plot frobenius error
-    plt.figure(figsize=(12, 9))
+    plt.figure(figsize=(15, 9))
     ax = sns.lineplot(data=res, x="k", y="fro", hue="dataset", marker="o")
     ax.set_yscale("log")
     ax.set_title("Nystrom Approximation Error (Frobenius Norm)")
@@ -103,10 +112,10 @@ if __name__ == "__main__":
     ax.set_ylabel("Relative Error")
     plt.legend(title="Dataset", bbox_to_anchor=(1.05, 1), loc='upper left')
     plt.tight_layout()
-    plt.savefig("out/rpcholesky_fro_error.png")
+    plt.savefig("out/rpcholesky_fro_error.png", bbox_inches="tight")
 
     # Plot trace error
-    plt.figure(figsize=(12, 9))
+    plt.figure(figsize=(15, 9))
     ax = sns.lineplot(data=res, x="k", y="tr", hue="dataset", marker="o")
     ax.set_yscale("log")
     ax.set_title("Nystrom Approximation Error (Trace Norm)")
@@ -114,15 +123,50 @@ if __name__ == "__main__":
     ax.set_ylabel("Relative Error")
     plt.legend(title="Dataset", bbox_to_anchor=(1.05, 1), loc='upper left')
     plt.tight_layout()
-    plt.savefig("out/rpcholesky_tr_error.png")
+    plt.savefig("out/rpcholesky_tr_error.png", bbox_inches="tight")
 
     # Plot computation time
-    plt.figure(figsize=(12, 9))
+    plt.figure(figsize=(15, 9))
     ax = sns.lineplot(data=res, x="k", y="time", hue="dataset", marker="o")
-    ax.set_yscale("log")
     ax.set_title("Nystrom Approximation Time")
     ax.set_xlabel("Rank (k)")
     ax.set_ylabel("Time (seconds)")
     plt.legend(title="Dataset", bbox_to_anchor=(1.05, 1), loc='upper left')
     plt.tight_layout()
-    plt.savefig("out/rpcholesky_time.png")
+    plt.savefig("out/rpcholesky_time.png", bbox_inches="tight")
+
+
+def make_tables(res):
+    # Create summary tables
+    summary = res.groupby(['dataset', 'k']).agg({
+        'greedy_tr': ['median'],
+        'rp_tr': ['median'],
+        'opt_tr': ['median'],
+        'greedy_fro': ['median'],
+        'rp_fro': ['median'],
+        'opt_fro': ['median']
+    }).reset_index()
+
+    print(summary)
+    summary.to_latex("out/table1000.tex", index=False, float_format="%.2e")
+
+
+
+if __name__ == "__main__":
+    datasets = ["yolanda", "mnist_784", "jannis",
+                "volkert", "creditcard", "hls4ml_lhc_jets_hlf"]
+    n_samples = 10000
+    n_trials = 10
+    ks = [1000]
+    filename = "out/errors1000.csv"
+    # ks = [10, 50] + list(range(100, 1001, 100))
+
+    run_experiments = False
+
+    if run_experiments:
+        res = generate_data(datasets, n_samples, n_trials, ks, filename)
+    else:
+        res = pd.read_csv(filename)
+
+    # make_plots(res)
+    make_tables(res)
