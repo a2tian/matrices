@@ -1,10 +1,6 @@
 import numpy as np
 
 
-def slice_to_range(s):
-    s.start
-
-
 class GaussianKernel():
     def __init__(self, data, bandwidth=1.0):
         self.data = data
