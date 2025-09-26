@@ -1,5 +1,4 @@
 import numpy as np
-from numba import jit
 import unittest
 
 
@@ -22,16 +21,16 @@ def partial_cholesky(A, k, selector):
     return F, S
 
 
-def adaptive_random(diag):
+def adaptive_random(diag, M):
     return np.random.choice(len(diag), p=diag/sum(diag))
 
 
-def greedy(diag):
+def greedy(diag, M):
     return np.argmax(diag)
 
 
-def uniform(diag):
-    return np.random.randint(len(diag))
+def uniform(diag, M):
+    return np.random.choice(np.nonzero(diag)[0])
 
 
 class Test(unittest.TestCase):
