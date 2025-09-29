@@ -51,10 +51,6 @@ def nystrom_error(K_full, k, selector):
 
     K_hat = F @ F.T
 
-    # Compute the optimal Nystrom approximation for comparison
-    # u, s, vt = scipy.sparse.linalg.svds(K_full, k=k)
-    # K_opt = u @ np.diag(s) @ vt
-
     rel_err_f = np.linalg.norm(
         K_full - K_hat, 'fro') / np.linalg.norm(K_full, 'fro')
     rel_err_tr = np.trace(K_full - K_hat) / np.trace(K_full)
@@ -78,9 +74,11 @@ def test_nystrom(datasets, n_samples, n_trials, ks, exclude=None, seed=0):
     
     res = pd.DataFrame(columns=["dataset", "k", 
                                 "rp_tr", "rp_fro", "rp_time",
+                                "rp2_tr", "rp2_fro", "rp2_time",
                                 "greedy_tr", "greedy_fro", "greedy_time", 
                                 "uniform_tr", "uniform_fro", "uniform_time", 
                                 "opt_tr", "opt_fro"])
+    
     for dataset in (data_bar := tqdm(datasets)):
         data_bar.set_description(f"Dataset: {dataset}")
         K, _, _ = openml_kernel(dataset, n_samples, seed=seed)
@@ -106,6 +104,11 @@ def test_nystrom(datasets, n_samples, n_trials, ks, exclude=None, seed=0):
                     rp_errors = nystrom_error(K_full, k, adaptive_random)
                 else:
                     rp_errors = {"tr": np.nan, "fro": np.nan, "time": np.nan}
+                
+                if "rp2" not in exclude:
+                    rp2_errors = nystrom_error(K_full, k, rpc2)
+                else:
+                    rp2_errors = {"tr": np.nan, "fro": np.nan, "time": np.nan}
                     
                 if "greedy" not in exclude:
                     greedy_errors = nystrom_error(K_full, k, greedy)
@@ -120,6 +123,7 @@ def test_nystrom(datasets, n_samples, n_trials, ks, exclude=None, seed=0):
                 
                 res.loc[len(res)] = [dataset, k, 
                                      rp_errors["tr"], rp_errors["fro"], rp_errors["time"],
+                                     rp2_errors["tr"], rp2_errors["fro"], rp2_errors["time"],
                                      greedy_errors["tr"], greedy_errors["fro"], greedy_errors["time"],
                                      uniform_errors["tr"], uniform_errors["fro"], uniform_errors["time"],
                                      opt_tr, opt_fro]
@@ -214,25 +218,6 @@ def normalized_errors(df_opt, df_rel, threshold=1):
     plt.tight_layout()
     plt.savefig(f"out/min_k_to_opt_r_threshold{threshold}.png", bbox_inches="tight")
         
-        # ax = sns.lineplot(data=m, x="k", y="rp_tr", hue="dataset", marker="o")
-        # ax.set_yscale("log")
-        # ax.set_title("Normalized Nystrom Approximation Error (Trace Norm) - RPCholesky")
-        # ax.set_xlabel("Rank (k)")
-        # ax.set_ylabel("Normalized Approximation Error")
-        # plt.legend(title="Dataset", bbox_to_anchor=(1.05, 1), loc='upper left')
-        # plt.tight_layout()
-        # plt.savefig(f"out/normalized_rpcholesky_tr_error_k{k}.png", bbox_inches="tight")
-        
-        # plt.figure(figsize=(15, 9))
-        # ax = sns.lineplot(data=m, x="k", y="rp_fro", hue="dataset", marker="o")
-        # ax.set_yscale("log")
-        # ax.set_title("Normalized Nystrom Approximation Error (Frobenius Norm) - RPCholesky")
-        # ax.set_xlabel("Rank (k)")
-        # ax.set_ylabel("Normalized Approximation Error")
-        # plt.legend(title="Dataset", bbox_to_anchor=(1.05, 1), loc='upper left')
-        # plt.tight_layout()
-        # plt.savefig(f"out/normalized_rpcholesky_fro_error_k{k}.png", bbox_inches="tight")
-        
 
 
 if __name__ == "__main__":
@@ -240,21 +225,17 @@ if __name__ == "__main__":
                 "volkert", "creditcard", "hls4ml_lhc_jets_hlf"]
     n_samples = 10000
     n_trials = 1
-    ks = list(range(10, 101, 10))
+    # ks = list(range(10, 101, 10))
     # ks = [10, 50] + list(range(100, 1001, 100))
-    filename = "out/errors_opt_10_100.csv"
+    ks = list(range(10, 1001))
+    filename = "out/rpc2_errors_yolanda.csv"
 
-    run_experiments = False
+    run_experiments = True
 
     if run_experiments:
-        res = generate_data(datasets, n_samples, n_trials, ks, filename, exclude=["uniform", "rp", "greedy"])
+        res = generate_data(["yolanda"], n_samples, n_trials, ks, filename, exclude=["uniform", "rp", "greedy", "opt"])
     else:
         res = pd.read_csv(filename)
-
-    
-    df_opt = pd.read_csv("out/errors_opt_10_100.csv")
-    df_rel = pd.read_csv("out/errors_relative_rp_greedy.csv")
-    normalized_errors(df_opt, df_rel)
     
     # make_plots(res)
     # make_tables(res)
