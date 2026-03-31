@@ -1,0 +1,74 @@
+[build-system]
+requires = ["setuptools>=69", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "matrices"
+version = "0.1.0"
+description = "Adaptive sampling methods and benchmark tooling for PSD matrix approximation."
+readme = "README.md"
+requires-python = ">=3.11"
+license = { text = "MIT" }
+authors = [{ name = "Aaron" }]
+dependencies = [
+  "numpy>=1.26",
+  "scipy>=1.12",
+]
+
+[project.optional-dependencies]
+bench = [
+  "matplotlib>=3.8",
+  "pandas>=2.2",
+  "scikit-learn>=1.5",
+]
+dev = [
+  "matplotlib>=3.8",
+  "pandas>=2.2",
+  "scikit-learn>=1.5",
+  "mypy>=1.10",
+  "pytest>=8.3",
+  "ruff>=0.6",
+]
+docs = [
+  "mkdocs>=1.6",
+  "mkdocs-material>=9.5",
+]
+
+[project.scripts]
+matrices-bench = "matrices.cli:main"
+
+[tool.setuptools]
+package-dir = { "" = "src" }
+include-package-data = true
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-data]
+matrices = ["benchmarks/suites/*.toml"]
+
+[tool.pytest.ini_options]
+addopts = "-ra"
+pythonpath = ["src"]
+markers = [
+  "openml: tests that require downloading datasets from OpenML",
+]
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+
+[tool.ruff.lint]
+select = ["B", "E", "F", "I", "N", "UP"]
+
+[tool.mypy]
+python_version = "3.11"
+mypy_path = ["src"]
+disallow_untyped_defs = true
+no_implicit_optional = true
+strict_equality = true
+warn_redundant_casts = true
+warn_return_any = true
+warn_unreachable = true
+warn_unused_ignores = true
+pretty = true

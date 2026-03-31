@@ -1,0 +1,8 @@
+site_name: matrices
+site_description: Adaptive sampling methods and benchmark tooling for PSD matrices
+theme:
+  name: material
+nav:
+  - Overview: index.md
+  - Benchmarking: benchmarking.md
+  - Extending: extending.md
