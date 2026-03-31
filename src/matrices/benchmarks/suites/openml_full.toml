@@ -1,0 +1,33 @@
+name = "openml_full"
+description = "Larger OpenML suite for reproducible adaptive sampling benchmarks without exact PSD references."
+output_dir = "results/openml_full"
+methods = ["uniform_nystrom", "diagonal_nystrom", "greedy_cholesky", "rp_cholesky"]
+ranks = [8, 16, 32]
+seeds = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]
+
+[reference]
+enabled = false
+
+[[datasets]]
+kind = "openml"
+name = "mnist_784"
+dataset = "mnist_784"
+n_samples = 256
+seed = 0
+standardize = true
+
+[[datasets]]
+kind = "openml"
+name = "creditcard"
+dataset = "creditcard"
+n_samples = 512
+seed = 1
+standardize = true
+
+[[datasets]]
+kind = "openml"
+name = "yolanda"
+dataset = "yolanda"
+n_samples = 512
+seed = 2
+standardize = true

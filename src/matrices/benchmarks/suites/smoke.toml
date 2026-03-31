@@ -1,0 +1,26 @@
+name = "smoke"
+description = "Fast synthetic benchmark suite for local validation and CI."
+output_dir = "results/smoke"
+methods = ["uniform_nystrom", "diagonal_nystrom", "greedy_cholesky", "rp_cholesky"]
+ranks = [4, 8]
+seeds = [0, 1, 2]
+
+[reference]
+enabled = true
+
+[[datasets]]
+kind = "synthetic_spectrum"
+name = "spectrum_small"
+size = 24
+decay = "polynomial"
+alpha = 1.2
+seed = 7
+
+[[datasets]]
+kind = "synthetic_gaussian_kernel"
+name = "gaussian_small"
+n_samples = 32
+n_features = 6
+clusters = 3
+cluster_std = 0.6
+seed = 11

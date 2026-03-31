@@ -1,0 +1,25 @@
+name = "reference"
+description = "Reference-oriented suite with exact PSD baselines for small synthetic and OpenML datasets."
+output_dir = "results/reference"
+methods = ["uniform_nystrom", "diagonal_nystrom", "greedy_cholesky", "rp_cholesky"]
+ranks = [4, 8, 12]
+seeds = [0, 1, 2, 3, 4]
+
+[reference]
+enabled = true
+
+[[datasets]]
+kind = "synthetic_spectrum"
+name = "spectrum_reference"
+size = 32
+decay = "exponential"
+alpha = 4.0
+seed = 5
+
+[[datasets]]
+kind = "openml"
+name = "mnist_784_small"
+dataset = "mnist_784"
+n_samples = 96
+seed = 0
+standardize = true
