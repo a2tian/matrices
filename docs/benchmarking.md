@@ -1,0 +1,29 @@
+# Benchmarking
+
+The `matrices-bench` CLI loads benchmark suites from TOML files.
+
+## Built-in suites
+
+- `smoke`: fast synthetic checks intended for local development and CI
+- `reference`: small synthetic and OpenML workloads with exact PSD reference curves
+- `openml_full`: larger OpenML workloads without exact-reference baselines
+
+## CLI
+
+```bash
+matrices-bench list
+matrices-bench run smoke
+matrices-bench run path/to/config.toml --output-dir results/custom
+matrices-bench report results/custom
+```
+
+## Outputs
+
+Each run writes:
+
+- `trial_results.csv`
+- `summary.csv`
+- `summary.json`
+- `report.md`
+- plot PNGs
+- the resolved benchmark config used for the run
