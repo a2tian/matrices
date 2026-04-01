@@ -1,12 +1,17 @@
 from __future__ import annotations
 
 from .base import ApproximationMethod
-from .cholesky import GreedyCholeskyMethod, RandomPivotedCholeskyMethod
+from .cholesky import (
+    ExactColumnNormCholeskyMethod,
+    GreedyCholeskyMethod,
+    RandomPivotedCholeskyMethod,
+)
 from .nystrom import DiagonalWeightedNystromMethod, UniformNystromMethod
 
 BUILTIN_METHODS: dict[str, type[ApproximationMethod]] = {
     "uniform_nystrom": UniformNystromMethod,
     "diagonal_nystrom": DiagonalWeightedNystromMethod,
+    "exact_column_norm_cholesky": ExactColumnNormCholeskyMethod,
     "greedy_cholesky": GreedyCholeskyMethod,
     "rp_cholesky": RandomPivotedCholeskyMethod,
 }
@@ -28,6 +33,7 @@ __all__ = [
     "ApproximationMethod",
     "BUILTIN_METHODS",
     "DiagonalWeightedNystromMethod",
+    "ExactColumnNormCholeskyMethod",
     "GreedyCholeskyMethod",
     "RandomPivotedCholeskyMethod",
     "UniformNystromMethod",

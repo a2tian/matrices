@@ -7,9 +7,12 @@ Implement `matrices.methods.ApproximationMethod` and register it in `matrices.me
 Method implementations should:
 
 - accept any `PSDOperator`
+- rely on the public operator surface (`diagonal()`, `entry()`, `column()`, `submatrix()`, `materialize()`) instead of assuming a dense matrix
 - use the provided `numpy.random.Generator`
 - return an `ApproximationResult`
 - avoid benchmark-specific logic
+
+Built-in Cholesky pivoting uses lazy operator queries while selecting pivots. Selector logic should not materialize the full matrix or residual.
 
 ## Add a dataset
 

@@ -3,6 +3,7 @@ from __future__ import annotations
 from collections.abc import Callable
 from dataclasses import dataclass
 from time import perf_counter
+from typing import Protocol
 
 import numpy as np
 from numpy.random import Generator
@@ -12,24 +13,70 @@ from ..results import ApproximationResult
 from .base import ApproximationMethod, current_entry_count, validate_rank
 
 
-def _greedy_selector(diagonal: np.ndarray, _: Generator) -> int:
-    return int(np.argmax(diagonal))
+class _PivotSelectorContext(Protocol):
+    diagonal: np.ndarray
+
+    def entry(self, i: int, j: int) -> float: ...
 
 
-def _random_selector(diagonal: np.ndarray, rng: Generator) -> int:
-    weights = np.clip(diagonal, a_min=0.0, a_max=None)
+PivotSelector = Callable[[_PivotSelectorContext, Generator], int]
+
+
+@dataclass(slots=True)
+class _ResidualSelectorContext:
+    operator: PSDOperator
+    factors: np.ndarray
+    diagonal: np.ndarray
+
+    def entry(self, i: int, j: int) -> float:
+        correction = 0.0
+        if self.factors.shape[1] > 0:
+            correction = float(self.factors[i, :] @ self.factors[j, :])
+        return float(self.operator.entry(i, j) - correction)
+
+
+def _diagonal_sampling_probabilities(diagonal: np.ndarray) -> np.ndarray | None:
+    weights = np.clip(np.asarray(diagonal, dtype=float), a_min=0.0, a_max=None)
     total_weight = float(weights.sum())
     if total_weight <= 0:
-        return int(np.argmax(diagonal))
-    probabilities = weights / total_weight
-    return int(rng.choice(len(diagonal), p=probabilities))
+        return None
+    return weights / total_weight
+
+
+def _greedy_selector(context: _PivotSelectorContext, _: Generator) -> int:
+    return int(np.argmax(context.diagonal))
+
+
+def _random_selector(context: _PivotSelectorContext, rng: Generator) -> int:
+    probabilities = _diagonal_sampling_probabilities(context.diagonal)
+    if probabilities is None:
+        return int(np.argmax(context.diagonal))
+    return int(rng.choice(len(context.diagonal), p=probabilities))
+
+
+def _exact_column_norm_selector(context: _PivotSelectorContext, rng: Generator) -> int:
+    probabilities = _diagonal_sampling_probabilities(context.diagonal)
+    if probabilities is None:
+        return int(np.argmax(context.diagonal))
+
+    while True:
+        i = int(rng.choice(len(context.diagonal), p=probabilities))
+        j = int(rng.choice(len(context.diagonal), p=probabilities))
+        d_i = float(context.diagonal[i])
+        d_j = float(context.diagonal[j])
+        if d_i <= 0 or d_j <= 0:
+            continue
+        r_ij = float(context.entry(i, j))
+        accept_probability = float(np.clip((r_ij * r_ij) / (d_i * d_j), 0.0, 1.0))
+        if rng.random() <= accept_probability:
+            return i
 
 
 @dataclass(slots=True)
 class _PartialCholeskyMethod(ApproximationMethod):
     name: str = ""
     deterministic: bool = False
-    selector: Callable[[np.ndarray, Generator], int] = _greedy_selector
+    selector: PivotSelector = _greedy_selector
 
     def run(self, operator: PSDOperator, rank: int, rng: Generator) -> ApproximationResult:
         target_rank = validate_rank(operator, rank)
@@ -42,7 +89,12 @@ class _PartialCholeskyMethod(ApproximationMethod):
         for column_index in range(target_rank):
             if float(diagonal.sum()) <= 0:
                 break
-            pivot_index = int(self.selector(diagonal, rng))
+            context = _ResidualSelectorContext(
+                operator=operator,
+                factors=factors[:, :column_index],
+                diagonal=diagonal,
+            )
+            pivot_index = int(self.selector(context, rng))
             pivot_value = float(diagonal[pivot_index])
             if pivot_value <= 0:
                 break
@@ -75,11 +127,18 @@ class _PartialCholeskyMethod(ApproximationMethod):
 class GreedyCholeskyMethod(_PartialCholeskyMethod):
     name: str = "greedy_cholesky"
     deterministic: bool = True
-    selector: Callable[[np.ndarray, Generator], int] = _greedy_selector
+    selector: PivotSelector = _greedy_selector
 
 
 @dataclass(slots=True)
 class RandomPivotedCholeskyMethod(_PartialCholeskyMethod):
     name: str = "rp_cholesky"
     deterministic: bool = False
-    selector: Callable[[np.ndarray, Generator], int] = _random_selector
+    selector: PivotSelector = _random_selector
+
+
+@dataclass(slots=True)
+class ExactColumnNormCholeskyMethod(_PartialCholeskyMethod):
+    name: str = "exact_column_norm_cholesky"
+    deterministic: bool = False
+    selector: PivotSelector = _exact_column_norm_selector
