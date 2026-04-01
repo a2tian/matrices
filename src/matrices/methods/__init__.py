@@ -2,17 +2,30 @@ from __future__ import annotations
 
 from .base import ApproximationMethod
 from .cholesky import (
-    ExactColumnNormCholeskyMethod,
+    ColumnNormCholeskyMethod,
     GreedyCholeskyMethod,
     RandomPivotedCholeskyMethod,
 )
 from .nystrom import DiagonalWeightedNystromMethod, UniformNystromMethod
+from .projector import (
+    ProjectedApproximationMethod,
+    ProjectedColumnNormCholeskyMethod,
+    ProjectedDiagonalWeightedNystromMethod,
+    ProjectedGreedyCholeskyMethod,
+    ProjectedRandomPivotedCholeskyMethod,
+    ProjectedUniformNystromMethod,
+)
 
 BUILTIN_METHODS: dict[str, type[ApproximationMethod]] = {
     "uniform_nystrom": UniformNystromMethod,
     "diagonal_nystrom": DiagonalWeightedNystromMethod,
-    "exact_column_norm_cholesky": ExactColumnNormCholeskyMethod,
+    "column_norm_cholesky": ColumnNormCholeskyMethod,
     "greedy_cholesky": GreedyCholeskyMethod,
+    "projected_column_norm_cholesky": ProjectedColumnNormCholeskyMethod,
+    "projected_diagonal_nystrom": ProjectedDiagonalWeightedNystromMethod,
+    "projected_greedy_cholesky": ProjectedGreedyCholeskyMethod,
+    "projected_rp_cholesky": ProjectedRandomPivotedCholeskyMethod,
+    "projected_uniform_nystrom": ProjectedUniformNystromMethod,
     "rp_cholesky": RandomPivotedCholeskyMethod,
 }
 
@@ -33,8 +46,14 @@ __all__ = [
     "ApproximationMethod",
     "BUILTIN_METHODS",
     "DiagonalWeightedNystromMethod",
-    "ExactColumnNormCholeskyMethod",
+    "ColumnNormCholeskyMethod",
     "GreedyCholeskyMethod",
+    "ProjectedApproximationMethod",
+    "ProjectedColumnNormCholeskyMethod",
+    "ProjectedDiagonalWeightedNystromMethod",
+    "ProjectedGreedyCholeskyMethod",
+    "ProjectedRandomPivotedCholeskyMethod",
+    "ProjectedUniformNystromMethod",
     "RandomPivotedCholeskyMethod",
     "UniformNystromMethod",
     "available_methods",

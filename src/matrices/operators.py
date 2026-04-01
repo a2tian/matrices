@@ -36,6 +36,29 @@ class PSDOperator(Protocol):
         """Return the dense matrix representation."""
 
 
+def apply_operator(operator: PSDOperator, vectors: FloatArray) -> FloatArray:
+    """Return operator @ vectors without requiring materialization."""
+
+    matrix = np.asarray(vectors, dtype=float)
+    if matrix.ndim != 2:
+        raise ValueError("vectors must be two-dimensional")
+    if matrix.shape[0] != operator.shape[1]:
+        raise ValueError("vectors must have shape (operator.shape[1], k)")
+
+    fast_apply = getattr(operator, "apply", None)
+    if callable(fast_apply):
+        return np.asarray(fast_apply(matrix), dtype=float)
+
+    result = np.zeros((operator.shape[0], matrix.shape[1]), dtype=float)
+    for column_index in range(operator.shape[1]):
+        coefficients = matrix[column_index, :]
+        if not np.any(coefficients):
+            continue
+        column = operator.column(column_index)
+        result += np.outer(column, coefficients)
+    return result
+
+
 def _as_index_array(indices: Sequence[int], limit: int) -> IndexArray:
     array = np.asarray(indices, dtype=int)
     if array.ndim != 1:

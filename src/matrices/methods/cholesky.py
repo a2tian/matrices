@@ -58,7 +58,7 @@ def _random_selector(context: _PivotSelectorContext, rng: Generator) -> int:
     return int(rng.choice(len(context.diagonal), p=probabilities))
 
 
-def _exact_column_norm_selector(context: _PivotSelectorContext, rng: Generator) -> int:
+def _column_norm_selector(context: _PivotSelectorContext, rng: Generator) -> int:
     probabilities = _diagonal_sampling_probabilities(context.diagonal)
     if probabilities is None:
         return int(np.argmax(context.diagonal))
@@ -142,7 +142,7 @@ class RandomPivotedCholeskyMethod(_PartialCholeskyMethod):
 
 
 @dataclass(slots=True)
-class ExactColumnNormCholeskyMethod(_PartialCholeskyMethod):
-    name: str = "exact_column_norm_cholesky"
+class ColumnNormCholeskyMethod(_PartialCholeskyMethod):
+    name: str = "column_norm_cholesky"
     deterministic: bool = False
-    selector: PivotSelector = _exact_column_norm_selector
+    selector: PivotSelector = _column_norm_selector

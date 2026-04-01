@@ -10,6 +10,22 @@ def symmetrize(matrix: FloatArray) -> FloatArray:
     return 0.5 * (matrix + matrix.T)
 
 
+def orthonormal_column_basis(columns: FloatArray, *, rcond: float = 1e-10) -> FloatArray:
+    """Return an orthonormal basis for the column span of columns."""
+
+    matrix = np.asarray(columns, dtype=float)
+    if matrix.ndim != 2:
+        raise ValueError("columns must be two-dimensional")
+    if matrix.shape[1] == 0:
+        return np.zeros((matrix.shape[0], 0), dtype=float)
+
+    left_vectors, singular_values, _ = np.linalg.svd(matrix, full_matrices=False)
+    max_singular_value = float(np.max(singular_values, initial=0.0))
+    threshold = rcond * max(max_singular_value, 1.0)
+    keep = singular_values > threshold
+    return np.asarray(left_vectors[:, keep], dtype=float)
+
+
 def nystrom_factor(
     columns: FloatArray,
     intersection: FloatArray,

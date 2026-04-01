@@ -4,7 +4,12 @@ import numpy as np
 import pytest
 
 from matrices.kernels import GaussianKernel
-from matrices.operators import CountingPSDOperator, DensePSDOperator, KernelPSDOperator
+from matrices.operators import (
+    CountingPSDOperator,
+    DensePSDOperator,
+    KernelPSDOperator,
+    apply_operator,
+)
 
 
 def test_dense_operator_accessors_match_source_matrix() -> None:
@@ -61,6 +66,25 @@ def test_counting_operator_counts_scalar_entry_queries() -> None:
 
     assert operator.entry(1, 1) == pytest.approx(1.0)
     assert operator.entry_evaluations == 1
+
+
+def test_apply_operator_matches_dense_matmul() -> None:
+    matrix = np.array([[2.0, 1.0, 0.5], [1.0, 3.0, 1.5], [0.5, 1.5, 4.0]])
+    vectors = np.array([[1.0, 0.0], [2.0, -1.0], [0.0, 3.0]])
+
+    result = apply_operator(DensePSDOperator(matrix), vectors)
+
+    assert np.allclose(result, matrix @ vectors)
+
+
+def test_apply_operator_counts_one_full_column_pass() -> None:
+    matrix = np.array([[2.0, 1.0, 0.5], [1.0, 3.0, 1.5], [0.5, 1.5, 4.0]])
+    operator = CountingPSDOperator(DensePSDOperator(matrix))
+    vectors = np.array([[1.0, 0.0], [2.0, -1.0], [0.0, 3.0]])
+
+    apply_operator(operator, vectors)
+
+    assert operator.entry_evaluations == matrix.shape[0] * matrix.shape[0]
 
 
 @pytest.mark.parametrize("row,col", [(-1, 0), (0, 2)])

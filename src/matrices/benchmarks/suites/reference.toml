@@ -1,9 +1,9 @@
 name = "reference"
 description = "Reference-oriented suite with exact PSD baselines for small synthetic and OpenML datasets."
 output_dir = "results/reference"
-methods = ["uniform_nystrom", "diagonal_nystrom", "greedy_cholesky", "rp_cholesky"]
-ranks = [4, 8, 12]
-seeds = [0, 1, 2, 3, 4]
+methods = ["uniform_nystrom", "rp_cholesky", "column_norm_cholesky", "projected_rp_cholesky", "projected_column_norm_cholesky"]
+ranks = [200, 400, 600, 800, 1000]
+seeds = [0]
 
 [reference]
 enabled = true
@@ -20,6 +20,6 @@ seed = 5
 kind = "openml"
 name = "mnist_784_small"
 dataset = "mnist_784"
-n_samples = 96
+n_samples = 10000
 seed = 0
 standardize = true

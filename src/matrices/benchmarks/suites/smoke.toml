@@ -1,7 +1,7 @@
 name = "smoke"
 description = "Fast synthetic benchmark suite for local validation and CI."
 output_dir = "results/smoke"
-methods = ["uniform_nystrom", "diagonal_nystrom", "greedy_cholesky", "rp_cholesky"]
+methods = ["uniform_nystrom", "diagonal_nystrom", "greedy_cholesky", "rp_cholesky", "column_norm_cholesky"]
 ranks = [4, 8]
 seeds = [0, 1, 2]
 
