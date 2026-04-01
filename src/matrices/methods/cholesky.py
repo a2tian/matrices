@@ -3,18 +3,21 @@ from __future__ import annotations
 from collections.abc import Callable
 from dataclasses import dataclass
 from time import perf_counter
-from typing import Protocol
+from typing import Protocol, TypeAlias
 
 import numpy as np
 from numpy.random import Generator
+from numpy.typing import NDArray
 
 from ..operators import PSDOperator
 from ..results import ApproximationResult
 from .base import ApproximationMethod, current_entry_count, validate_rank
 
+FloatArray: TypeAlias = NDArray[np.float64]
+
 
 class _PivotSelectorContext(Protocol):
-    diagonal: np.ndarray
+    diagonal: FloatArray
 
     def entry(self, i: int, j: int) -> float: ...
 
@@ -25,8 +28,8 @@ PivotSelector = Callable[[_PivotSelectorContext, Generator], int]
 @dataclass(slots=True)
 class _ResidualSelectorContext:
     operator: PSDOperator
-    factors: np.ndarray
-    diagonal: np.ndarray
+    factors: FloatArray
+    diagonal: FloatArray
 
     def entry(self, i: int, j: int) -> float:
         correction = 0.0
@@ -35,12 +38,13 @@ class _ResidualSelectorContext:
         return float(self.operator.entry(i, j) - correction)
 
 
-def _diagonal_sampling_probabilities(diagonal: np.ndarray) -> np.ndarray | None:
-    weights = np.clip(np.asarray(diagonal, dtype=float), a_min=0.0, a_max=None)
+def _diagonal_sampling_probabilities(diagonal: FloatArray) -> FloatArray | None:
+    weights: FloatArray = np.clip(np.asarray(diagonal, dtype=float), a_min=0.0, a_max=None)
     total_weight = float(weights.sum())
     if total_weight <= 0:
         return None
-    return weights / total_weight
+    probabilities: FloatArray = weights / total_weight
+    return probabilities
 
 
 def _greedy_selector(context: _PivotSelectorContext, _: Generator) -> int:

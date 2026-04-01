@@ -171,7 +171,7 @@ class OpenMLDatasetSpec(DatasetSpec):
             )
 
         try:
-            from sklearn.datasets import fetch_openml  # type: ignore[import-untyped]
+            from sklearn.datasets import fetch_openml
         except ImportError as exc:
             raise RuntimeError("OpenML support requires `pip install -e .[bench]`") from exc
 
