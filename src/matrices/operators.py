@@ -23,6 +23,9 @@ class PSDOperator(Protocol):
     def diagonal(self) -> FloatArray:
         """Return the diagonal entries of the operator."""
 
+    def entry(self, row: int, col: int) -> float:
+        """Return a single operator entry."""
+
     def column(self, index: int) -> FloatArray:
         """Return a dense view of the requested column."""
 
@@ -40,6 +43,13 @@ def _as_index_array(indices: Sequence[int], limit: int) -> IndexArray:
     if np.any(array < 0) or np.any(array >= limit):
         raise IndexError("index out of bounds")
     return array
+
+
+def _as_scalar_index(index: int, limit: int) -> int:
+    scalar = int(index)
+    if scalar < 0 or scalar >= limit:
+        raise IndexError("index out of bounds")
+    return scalar
 
 
 @dataclass(slots=True)
@@ -63,6 +73,11 @@ class DensePSDOperator:
 
     def diagonal(self) -> FloatArray:
         return np.diag(self.matrix).copy()
+
+    def entry(self, row: int, col: int) -> float:
+        row_index = _as_scalar_index(row, self.shape[0])
+        col_index = _as_scalar_index(col, self.shape[1])
+        return float(self.matrix[row_index, col_index])
 
     def column(self, index: int) -> FloatArray:
         return self.matrix[:, index].copy()
@@ -100,6 +115,11 @@ class KernelPSDOperator:
             count=self.data.shape[0],
         )
 
+    def entry(self, row: int, col: int) -> float:
+        row_index = _as_scalar_index(row, self.shape[0])
+        col_index = _as_scalar_index(col, self.shape[1])
+        return float(self.kernel.pair(self.data[row_index], self.data[col_index]))
+
     def column(self, index: int) -> FloatArray:
         column = self.kernel.matrix(self.data, self.data[index : index + 1])
         return column[:, 0]
@@ -128,6 +148,11 @@ class CountingPSDOperator:
         diagonal = self.base.diagonal()
         self.entry_evaluations += diagonal.size
         return diagonal
+
+    def entry(self, row: int, col: int) -> float:
+        value = self.base.entry(row, col)
+        self.entry_evaluations += 1
+        return value
 
     def column(self, index: int) -> FloatArray:
         column = self.base.column(index)
