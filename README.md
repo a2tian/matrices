@@ -2,8 +2,6 @@
 
 `matrices` is a Python package for implementing and benchmarking adaptive sampling methods for low-rank approximation of positive semidefinite matrices.
 
-The library is built around a generic PSD operator interface, so the same methods work on explicit dense matrices and lazy kernel operators. The benchmark tooling is config-driven and reproducible, with built-in synthetic and OpenML-backed suites.
-
 ## Installation
 
 ```bash
