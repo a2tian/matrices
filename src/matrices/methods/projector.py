@@ -6,7 +6,7 @@ from time import perf_counter
 import numpy as np
 from numpy.random import Generator
 
-from ..numerics import FloatArray, orthonormal_column_basis, psd_eigendecomposition, symmetrize
+from ..numerics import orthonormal_column_basis, psd_eigendecomposition, symmetrize
 from ..operators import PSDOperator, apply_operator
 from ..results import ApproximationResult
 from .base import ApproximationMethod, current_entry_count

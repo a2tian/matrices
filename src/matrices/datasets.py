@@ -117,9 +117,7 @@ class SyntheticIdentityPlusOnesDatasetSpec(DatasetSpec):
             raise ValueError("size must be positive")
         min_delta = -1.0 / self.size
         if self.delta < min_delta:
-            raise ValueError(
-                f"delta must be at least {min_delta} for I + delta J to remain PSD"
-            )
+            raise ValueError(f"delta must be at least {min_delta} for I + delta J to remain PSD")
         matrix = np.eye(self.size, dtype=float) + self.delta * np.ones(
             (self.size, self.size),
             dtype=float,

@@ -145,14 +145,14 @@ class BenchmarkConfig:
 
     def to_toml(self) -> str:
         lines = [
-            f'name = {_toml_value(self.name)}',
-            f'description = {_toml_value(self.description)}',
-            f'methods = {_toml_value(list(self.methods))}',
-            f'ranks = {_toml_value(list(self.ranks))}',
-            f'seeds = {_toml_value(list(self.seeds))}',
+            f"name = {_toml_value(self.name)}",
+            f"description = {_toml_value(self.description)}",
+            f"methods = {_toml_value(list(self.methods))}",
+            f"ranks = {_toml_value(list(self.ranks))}",
+            f"seeds = {_toml_value(list(self.seeds))}",
         ]
         if self.output_dir is not None:
-            lines.append(f'output_dir = {_toml_value(self.output_dir)}')
+            lines.append(f"output_dir = {_toml_value(self.output_dir)}")
         lines.extend(["", "[reference]", f"enabled = {_toml_value(self.reference_enabled)}"])
         for dataset in self.datasets:
             lines.extend(["", "[[datasets]]"])

@@ -10,8 +10,8 @@ from numpy.typing import NDArray
 
 from matrices.methods import (
     ApproximationMethod,
-    DiagonalWeightedNystromMethod,
     ColumnNormCholeskyMethod,
+    DiagonalWeightedNystromMethod,
     GreedyCholeskyMethod,
     ProjectedApproximationMethod,
     ProjectedColumnNormCholeskyMethod,

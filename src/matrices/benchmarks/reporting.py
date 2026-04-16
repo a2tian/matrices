@@ -67,8 +67,7 @@ def _format_cell(value: object) -> str:
 def _dataframe_to_markdown(dataframe: Any) -> str:
     headers = list(dataframe.columns)
     rows = [
-        [_format_cell(item) for item in row]
-        for row in dataframe.itertuples(index=False, name=None)
+        [_format_cell(item) for item in row] for row in dataframe.itertuples(index=False, name=None)
     ]
     separator = ["---"] * len(headers)
     lines = [

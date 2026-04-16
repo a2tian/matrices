@@ -69,7 +69,12 @@ def paired_entries(
 ) -> FloatArray:
     """Return zipped entries while supporting scalar-entry-only operators."""
 
-    row_indices, col_indices = _as_paired_index_arrays(rows, cols, operator.shape[0], operator.shape[1])
+    row_indices, col_indices = _as_paired_index_arrays(
+        rows,
+        cols,
+        operator.shape[0],
+        operator.shape[1],
+    )
     batched_entries = getattr(operator, "entries", None)
     if callable(batched_entries):
         values = np.asarray(batched_entries(row_indices, col_indices), dtype=float)
