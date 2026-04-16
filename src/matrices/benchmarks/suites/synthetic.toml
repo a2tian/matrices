@@ -1,0 +1,16 @@
+name = "synthetic"
+description = "Runner for single bad instance for Nystrom methods."
+output_dir = "results/synthetic"
+methods = ["rp_cholesky", "column_norm_cholesky", "projected_rp_cholesky", "projected_column_norm_cholesky"]
+ranks = [10, 50, 100, 150, 200, 250, 300, 250]
+seeds = [0]
+
+[reference]
+enabled = false
+
+[[datasets]]
+kind = "synthetic_identity_plus_ones"
+name = "nystrom_hard"
+size = 10000
+delta = 10
+seed = 0

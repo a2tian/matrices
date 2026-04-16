@@ -1,25 +1,17 @@
 name = "reference"
 description = "Reference-oriented suite with exact PSD baselines for small synthetic and OpenML datasets."
 output_dir = "results/reference"
-methods = ["uniform_nystrom", "rp_cholesky", "column_norm_cholesky", "projected_rp_cholesky", "projected_column_norm_cholesky"]
-ranks = [200, 400, 600, 800, 1000]
+methods = ["rp_cholesky", "column_norm_cholesky", "projected_rp_cholesky", "projected_column_norm_cholesky"]
+ranks = [200, 400, 600, 800]
 seeds = [0]
 
 [reference]
 enabled = true
 
 [[datasets]]
-kind = "synthetic_spectrum"
-name = "spectrum_reference"
-size = 32
-decay = "exponential"
-alpha = 4.0
-seed = 5
-
-[[datasets]]
 kind = "openml"
-name = "mnist_784_small"
-dataset = "mnist_784"
+name = "yolanda"
+dataset = "yolanda"
 n_samples = 10000
 seed = 0
 standardize = true

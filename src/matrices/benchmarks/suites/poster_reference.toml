@@ -1,0 +1,41 @@
+name = "poster_reference"
+description = "Poster figures with exact PSD baselines."
+output_dir = "results/poster_reference"
+
+methods = [
+  "uniform_nystrom",
+  "greedy_cholesky",
+  "rp_cholesky",
+  "column_norm_cholesky",
+]
+
+ranks = [4, 8, 12, 16, 24, 32]
+seeds = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]
+
+[reference]
+enabled = true
+
+[[datasets]]
+kind = "synthetic_spectrum"
+name = "spectrum_exp"
+size = 128
+decay = "exponential"
+alpha = 4.0
+seed = 5
+
+[[datasets]]
+kind = "synthetic_gaussian_kernel"
+name = "gaussian_clusters"
+n_samples = 256
+n_features = 8
+clusters = 4
+cluster_std = 0.6
+seed = 11
+
+[[datasets]]
+kind = "openml"
+name = "mnist_784_small"
+dataset = "mnist_784"
+n_samples = 192
+seed = 0
+standardize = true

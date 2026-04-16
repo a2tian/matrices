@@ -1,0 +1,42 @@
+name = "poster_scaling"
+description = "Scaling curves at fixed rank."
+output_dir = "results/poster_scaling"
+
+methods = [
+  "greedy_cholesky",
+  "rp_cholesky",
+  "column_norm_cholesky",
+]
+
+ranks = [16]
+seeds = [0, 1, 2, 3, 4]
+
+[reference]
+enabled = false
+
+[[datasets]]
+kind = "synthetic_gaussian_kernel"
+name = "gaussian_n128"
+n_samples = 128
+n_features = 8
+clusters = 4
+cluster_std = 0.6
+seed = 11
+
+[[datasets]]
+kind = "synthetic_gaussian_kernel"
+name = "gaussian_n256"
+n_samples = 256
+n_features = 8
+clusters = 4
+cluster_std = 0.6
+seed = 11
+
+[[datasets]]
+kind = "synthetic_gaussian_kernel"
+name = "gaussian_n512"
+n_samples = 512
+n_features = 8
+clusters = 4
+cluster_std = 0.6
+seed = 11
