@@ -9,17 +9,20 @@ import numpy as np
 from numpy.random import Generator
 from numpy.typing import NDArray
 
-from ..operators import PSDOperator
+from ..operators import PSDOperator, paired_entries
 from ..results import ApproximationResult
 from .base import ApproximationMethod, current_entry_count, validate_rank
 
 FloatArray: TypeAlias = NDArray[np.float64]
+IndexArray: TypeAlias = NDArray[np.int_]
 
 
 class _PivotSelectorContext(Protocol):
     diagonal: FloatArray
 
     def entry(self, i: int, j: int) -> float: ...
+
+    def entries(self, rows: NDArray[np.int_], cols: NDArray[np.int_]) -> FloatArray: ...
 
 
 PivotSelector = Callable[[_PivotSelectorContext, Generator], int]
@@ -31,11 +34,84 @@ class _ResidualSelectorContext:
     factors: FloatArray
     diagonal: FloatArray
 
+    def entries(self, rows: NDArray[np.int_], cols: NDArray[np.int_]) -> FloatArray:
+        row_indices = np.asarray(rows, dtype=int)
+        col_indices = np.asarray(cols, dtype=int)
+        if row_indices.ndim != 1 or col_indices.ndim != 1:
+            raise ValueError("rows and cols must be one-dimensional")
+        if row_indices.shape[0] != col_indices.shape[0]:
+            raise ValueError("rows and cols must have the same length")
+        base_entries = paired_entries(self.operator, row_indices.tolist(), col_indices.tolist())
+        if self.factors.shape[1] == 0 or row_indices.size == 0:
+            return base_entries
+        correction = np.sum(
+            self.factors[row_indices, :] * self.factors[col_indices, :],
+            axis=1,
+        )
+        return np.asarray(base_entries - correction, dtype=float)
+
     def entry(self, i: int, j: int) -> float:
-        correction = 0.0
-        if self.factors.shape[1] > 0:
-            correction = float(self.factors[i, :] @ self.factors[j, :])
-        return float(self.operator.entry(i, j) - correction)
+        return float(
+            self.entries(
+                np.array([i], dtype=int),
+                np.array([j], dtype=int),
+            )[0]
+        )
+
+
+@dataclass(slots=True)
+class _AliasSampler:
+    thresholds: FloatArray
+    aliases: IndexArray
+
+    @classmethod
+    def from_probabilities(cls, probabilities: FloatArray) -> _AliasSampler:
+        values = np.asarray(probabilities, dtype=float)
+        if values.ndim != 1:
+            raise ValueError("probabilities must be one-dimensional")
+        if values.size == 0:
+            raise ValueError("probabilities must be non-empty")
+        total = float(values.sum())
+        if total <= 0:
+            raise ValueError("probabilities must have positive mass")
+
+        normalized = values / total
+        scaled = normalized * normalized.size
+        thresholds = np.ones(normalized.size, dtype=float)
+        aliases = np.arange(normalized.size, dtype=int)
+
+        small = [index for index, value in enumerate(scaled) if value < 1.0]
+        large = [index for index, value in enumerate(scaled) if value >= 1.0]
+
+        while small and large:
+            small_index = small.pop()
+            large_index = large.pop()
+            thresholds[small_index] = float(scaled[small_index])
+            aliases[small_index] = large_index
+            scaled[large_index] = scaled[large_index] - (1.0 - thresholds[small_index])
+            if scaled[large_index] < 1.0:
+                small.append(large_index)
+            else:
+                large.append(large_index)
+
+        for index in small + large:
+            thresholds[index] = 1.0
+            aliases[index] = index
+
+        return cls(
+            thresholds=np.asarray(np.clip(thresholds, 0.0, 1.0), dtype=float),
+            aliases=np.asarray(aliases, dtype=int),
+        )
+
+    def sample(self, size: int, rng: Generator) -> IndexArray:
+        sample_size = int(size)
+        if sample_size < 0:
+            raise ValueError("size must be nonnegative")
+        if sample_size == 0:
+            return np.zeros(0, dtype=int)
+        primary = np.asarray(rng.integers(self.aliases.size, size=sample_size), dtype=int)
+        uniforms = rng.random(sample_size)
+        return np.where(uniforms < self.thresholds[primary], primary, self.aliases[primary])
 
 
 def _diagonal_sampling_probabilities(diagonal: FloatArray) -> FloatArray | None:
@@ -63,17 +139,31 @@ def _column_norm_selector(context: _PivotSelectorContext, rng: Generator) -> int
     if probabilities is None:
         return int(np.argmax(context.diagonal))
 
+    sampler = _AliasSampler.from_probabilities(probabilities)
+    n_items = len(context.diagonal)
+    batch_size = 1
+
     while True:
-        i = int(rng.choice(len(context.diagonal), p=probabilities))
-        j = int(rng.choice(len(context.diagonal), p=probabilities))
-        d_i = float(context.diagonal[i])
-        d_j = float(context.diagonal[j])
-        if d_i <= 0 or d_j <= 0:
-            continue
-        r_ij = float(context.entry(i, j))
-        accept_probability = float(np.clip((r_ij * r_ij) / (d_i * d_j), 0.0, 1.0))
-        if rng.random() <= accept_probability:
-            return i
+        rows = sampler.sample(batch_size, rng)
+        cols = sampler.sample(batch_size, rng)
+
+        denom = context.diagonal[rows] * context.diagonal[cols]
+        accept_probabilities = np.zeros(batch_size, dtype=float)
+        valid = denom > 0.0
+        if np.any(valid):
+            residual_entries = context.entries(rows[valid], cols[valid])
+            accept_probabilities[valid] = np.clip(
+                (residual_entries * residual_entries) / denom[valid],
+                0.0,
+                1.0,
+            )
+
+        accepted = rng.random(batch_size) <= accept_probabilities
+        if np.any(accepted):
+            first_accepted = int(np.flatnonzero(accepted)[0])
+            return int(rows[first_accepted])
+
+        batch_size = min(2 * batch_size, n_items)
 
 
 @dataclass(slots=True)

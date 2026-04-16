@@ -31,6 +31,15 @@ def test_dense_operator_entry_matches_source_matrix() -> None:
     assert operator.entry(1, 0) == pytest.approx(matrix[1, 0])
 
 
+def test_dense_operator_entries_match_source_matrix() -> None:
+    matrix = np.array([[2.0, 1.0, 4.0], [1.0, 3.0, 5.0], [4.0, 5.0, 6.0]])
+    operator = DensePSDOperator(matrix)
+
+    entries = operator.entries([0, 2, 1], [1, 0, 2])
+
+    assert np.allclose(entries, np.array([matrix[0, 1], matrix[2, 0], matrix[1, 2]]))
+
+
 def test_kernel_operator_matches_dense_kernel_matrix() -> None:
     data = np.array([[0.0, 0.0], [1.0, 0.0], [0.0, 1.0]])
     kernel = GaussianKernel(bandwidth=1.5)
@@ -52,6 +61,28 @@ def test_kernel_operator_entry_matches_dense_kernel_matrix() -> None:
     assert operator.entry(2, 1) == pytest.approx(dense[2, 1])
 
 
+def test_kernel_operator_entries_match_dense_kernel_matrix() -> None:
+    data = np.array([[0.0, 0.0], [1.0, 0.0], [0.0, 1.0]])
+    kernel = GaussianKernel(bandwidth=1.5)
+    operator = KernelPSDOperator(data, kernel)
+
+    dense = kernel.matrix(data, data)
+    entries = operator.entries([0, 2, 1], [2, 1, 0])
+
+    assert np.allclose(entries, np.array([dense[0, 2], dense[2, 1], dense[1, 0]]))
+
+
+def test_gaussian_kernel_pairs_matches_pairwise_scalar_evaluation() -> None:
+    kernel = GaussianKernel(bandwidth=1.5)
+    left = np.array([[0.0, 0.0], [1.0, 0.0], [0.5, 0.5]])
+    right = np.array([[0.0, 1.0], [1.0, 1.0], [0.5, -0.5]])
+
+    values = kernel.pairs(left, right)
+    expected = np.array([kernel.pair(x, y) for x, y in zip(left, right, strict=True)])
+
+    assert np.allclose(values, expected)
+
+
 def test_counting_operator_tracks_entry_queries() -> None:
     operator = CountingPSDOperator(DensePSDOperator(np.eye(4)))
     operator.diagonal()
@@ -66,6 +97,15 @@ def test_counting_operator_counts_scalar_entry_queries() -> None:
 
     assert operator.entry(1, 1) == pytest.approx(1.0)
     assert operator.entry_evaluations == 1
+
+
+def test_counting_operator_counts_batched_entry_queries() -> None:
+    operator = CountingPSDOperator(DensePSDOperator(np.eye(4)))
+
+    values = operator.entries([0, 1, 2], [1, 2, 3])
+
+    assert np.allclose(values, np.array([0.0, 0.0, 0.0]))
+    assert operator.entry_evaluations == 3
 
 
 def test_apply_operator_matches_dense_matmul() -> None:
@@ -87,9 +127,24 @@ def test_apply_operator_counts_one_full_column_pass() -> None:
     assert operator.entry_evaluations == matrix.shape[0] * matrix.shape[0]
 
 
+def test_entries_raise_for_mismatched_lengths() -> None:
+    operator = DensePSDOperator(np.eye(3))
+
+    with pytest.raises(ValueError):
+        operator.entries([0, 1], [0])
+
+
 @pytest.mark.parametrize("row,col", [(-1, 0), (0, 2)])
 def test_entry_raises_index_error_out_of_bounds(row: int, col: int) -> None:
     operator = DensePSDOperator(np.eye(2))
 
     with pytest.raises(IndexError):
         operator.entry(row, col)
+
+
+@pytest.mark.parametrize("rows,cols", [([-1], [0]), ([0], [2])])
+def test_entries_raise_index_error_out_of_bounds(rows: list[int], cols: list[int]) -> None:
+    operator = DensePSDOperator(np.eye(2))
+
+    with pytest.raises(IndexError):
+        operator.entries(rows, cols)

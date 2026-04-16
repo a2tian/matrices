@@ -1,9 +1,12 @@
 from __future__ import annotations
 
+from collections.abc import Sequence
 from dataclasses import dataclass
+from typing import TypeAlias
 
 import numpy as np
 from numpy.random import Generator
+from numpy.typing import NDArray
 
 from matrices.methods import (
     ApproximationMethod,
@@ -23,6 +26,8 @@ from matrices.methods import (
 from matrices.numerics import nystrom_factor
 from matrices.operators import CountingPSDOperator, DensePSDOperator, PSDOperator
 from matrices.results import ApproximationResult
+
+FloatArray: TypeAlias = NDArray[np.float64]
 
 
 def _random_psd_matrix(seed: int, n_rows: int = 20, n_features: int = 6) -> np.ndarray:
@@ -44,6 +49,40 @@ class _FixedSelectionMethod(ApproximationMethod):
             selected_indices=self.selected_indices,
             factors=np.zeros((operator.shape[0], 0), dtype=float),
         )
+
+
+@dataclass(slots=True)
+class _BatchedEntryOnlyRankOneOperator:
+    matrix: FloatArray
+
+    def __post_init__(self) -> None:
+        self.matrix = np.asarray(self.matrix, dtype=float)
+
+    @property
+    def shape(self) -> tuple[int, int]:
+        return self.matrix.shape
+
+    def diagonal(self) -> FloatArray:
+        return np.diag(self.matrix).copy()
+
+    def entry(self, row: int, col: int) -> float:
+        raise AssertionError("column-norm selector should use batched entries")
+
+    def entries(self, rows: Sequence[int], cols: Sequence[int]) -> FloatArray:
+        row_indices = np.asarray(rows, dtype=int)
+        col_indices = np.asarray(cols, dtype=int)
+        return np.asarray(self.matrix[row_indices, col_indices], dtype=float)
+
+    def column(self, index: int) -> FloatArray:
+        return self.matrix[:, index].copy()
+
+    def submatrix(self, rows: Sequence[int], cols: Sequence[int]) -> FloatArray:
+        row_indices = np.asarray(rows, dtype=int)
+        col_indices = np.asarray(cols, dtype=int)
+        return np.asarray(self.matrix[np.ix_(row_indices, col_indices)], dtype=float)
+
+    def materialize(self) -> FloatArray:
+        return self.matrix.copy()
 
 
 def test_methods_produce_symmetric_approximations() -> None:
@@ -132,5 +171,16 @@ def test_projected_method_handles_duplicate_or_dependent_columns() -> None:
     result = method.run(operator, rank=3, rng=np.random.default_rng(0))
 
     assert result.selected_indices == (0, 2)
+    assert result.effective_rank == 1
+    assert np.allclose(result.materialize(), matrix, atol=1e-10)
+
+
+def test_column_norm_cholesky_uses_batched_entries_in_selector() -> None:
+    u = np.array([1.0, 2.0, 3.0, 4.0])
+    matrix = np.outer(u, u)
+    operator = _BatchedEntryOnlyRankOneOperator(matrix)
+
+    result = ColumnNormCholeskyMethod().run(operator, rank=1, rng=np.random.default_rng(0))
+
     assert result.effective_rank == 1
     assert np.allclose(result.materialize(), matrix, atol=1e-10)

@@ -34,6 +34,20 @@ class GaussianKernel:
         scale = -0.5 / (self.bandwidth**2)
         return float(np.exp(scale * np.dot(diff, diff)))
 
+    def pairs(self, x: FloatArray, y: FloatArray) -> FloatArray:
+        """Evaluate the kernel on zipped pairs of points."""
+
+        left = np.asarray(x, dtype=float)
+        right = np.asarray(y, dtype=float)
+        if left.ndim != 2 or right.ndim != 2:
+            raise ValueError("x and y must be two-dimensional")
+        if left.shape != right.shape:
+            raise ValueError("x and y must have the same shape")
+        diff = left - right
+        sqdist = np.sum(diff * diff, axis=1)
+        scale = -0.5 / (self.bandwidth**2)
+        return np.asarray(np.exp(scale * sqdist), dtype=float)
+
     def matrix(self, x: FloatArray, y: FloatArray) -> FloatArray:
         x_norm = np.sum(x**2, axis=1).reshape(-1, 1)
         y_norm = np.sum(y**2, axis=1)
