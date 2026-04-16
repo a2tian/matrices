@@ -18,7 +18,7 @@ CURATED_OPENML_DATASETS: dict[str, str] = {
     "jannis": "jannis",
     "mnist_784": "mnist_784",
     "volkert": "volkert",
-    "yolanda": "yolanda",
+    "yolanda": "Yolanda",
 }
 
 
@@ -102,6 +102,44 @@ class SyntheticSpectrumDatasetSpec(DatasetSpec):
             "alpha": self.alpha,
             "seed": self.seed,
             "jitter": self.jitter,
+        }
+
+
+@dataclass(slots=True)
+class SyntheticIdentityPlusOnesDatasetSpec(DatasetSpec):
+    name: str
+    size: int = 64
+    delta: float = 0.1
+    kind: str = "synthetic_identity_plus_ones"
+
+    def build(self) -> DatasetBundle:
+        if self.size <= 0:
+            raise ValueError("size must be positive")
+        min_delta = -1.0 / self.size
+        if self.delta < min_delta:
+            raise ValueError(
+                f"delta must be at least {min_delta} for I + delta J to remain PSD"
+            )
+        matrix = np.eye(self.size, dtype=float) + self.delta * np.ones(
+            (self.size, self.size),
+            dtype=float,
+        )
+        return DatasetBundle(
+            name=self.name,
+            kind=self.kind,
+            operator=DensePSDOperator(matrix),
+            metadata={
+                "delta": self.delta,
+                "size": self.size,
+            },
+        )
+
+    def to_config(self) -> dict[str, object]:
+        return {
+            "kind": self.kind,
+            "name": self.name,
+            "size": self.size,
+            "delta": self.delta,
         }
 
 

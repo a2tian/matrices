@@ -86,6 +86,7 @@ def generate_plots(summary_df: Any, output_dir: Path) -> tuple[Path, ...]:
     metrics = [
         ("relative_frobenius_error_mean", "Relative Frobenius Error", "frobenius"),
         ("relative_trace_error_mean", "Relative Trace Error", "trace"),
+        ("entry_evaluations_mean", "Entry Evaluations", "entries"),
         ("runtime_seconds_mean", "Runtime (s)", "runtime"),
     ]
     for dataset_name, dataset_frame in summary_df.groupby("dataset"):

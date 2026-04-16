@@ -17,6 +17,20 @@ matrices-bench run path/to/config.toml --output-dir results/custom
 matrices-bench report results/custom
 ```
 
+## Dataset Kinds
+
+Benchmark configs currently support `synthetic_spectrum`, `synthetic_identity_plus_ones`, `synthetic_gaussian_kernel`, and `openml`.
+
+Example:
+
+```toml
+[[datasets]]
+kind = "synthetic_identity_plus_ones"
+name = "identity_plus_ones_small"
+size = 128
+delta = 0.05
+```
+
 ## Outputs
 
 Each run writes:

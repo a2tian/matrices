@@ -6,6 +6,7 @@ from .datasets import (
     DatasetSpec,
     OpenMLDatasetSpec,
     SyntheticGaussianKernelDatasetSpec,
+    SyntheticIdentityPlusOnesDatasetSpec,
     SyntheticSpectrumDatasetSpec,
 )
 from .kernels import GaussianKernel, KernelFunction
@@ -24,6 +25,7 @@ __all__ = [
     "OpenMLDatasetSpec",
     "PSDOperator",
     "SyntheticGaussianKernelDatasetSpec",
+    "SyntheticIdentityPlusOnesDatasetSpec",
     "SyntheticSpectrumDatasetSpec",
 ]
 

@@ -9,6 +9,7 @@ from ..datasets import (
     DatasetSpec,
     OpenMLDatasetSpec,
     SyntheticGaussianKernelDatasetSpec,
+    SyntheticIdentityPlusOnesDatasetSpec,
     SyntheticSpectrumDatasetSpec,
 )
 
@@ -64,6 +65,12 @@ def _build_dataset_spec(raw: dict[str, Any]) -> DatasetSpec:
             alpha=float(raw.get("alpha", 1.5)),
             seed=int(raw.get("seed", 0)),
             jitter=float(raw.get("jitter", 1e-8)),
+        )
+    if dataset_type == "synthetic_identity_plus_ones":
+        return SyntheticIdentityPlusOnesDatasetSpec(
+            name=str(raw["name"]),
+            size=int(raw.get("size", 64)),
+            delta=float(raw.get("delta", 0.1)),
         )
     if dataset_type == "synthetic_gaussian_kernel":
         bandwidth_value = raw.get("bandwidth")
